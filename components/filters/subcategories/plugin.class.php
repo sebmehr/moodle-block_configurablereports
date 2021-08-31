@@ -38,6 +38,8 @@ class plugin_subcategories extends plugin_base {
     }
 
     public function execute($finalelements, $data) {
+        global $DB;
+
         $filtersubcategories = optional_param('filter_subcategories', 0, PARAM_INT);
         if (!$filtersubcategories) {
             return $finalelements;
@@ -47,7 +49,16 @@ class plugin_subcategories extends plugin_base {
             return array($filtersubcategories);
         } else {
             if (preg_match("/%%FILTER_SUBCATEGORIES:([^%]+)%%/i", $finalelements, $output)) {
-                $replace = ' AND '.$output[1].' LIKE CONCAT( \'%/\', '.$filtersubcategories.', \'%\' ) ';
+                $parentcategory = $DB->get_field('course_categories', 'parent', array('id' => $filtersubcategories));
+
+                if ($parentcategory == 0) {
+                    $replace = ' AND ( '.$output[1].' LIKE CONCAT( \'/\', '.$filtersubcategories.', \'/%\' )
+                                 OR '.$output[1].' LIKE CONCAT( \'/\', '.$filtersubcategories.' ) )';
+                } else {
+                    $replace = ' AND ( '.$output[1].' LIKE CONCAT( \'%/\', '.$filtersubcategories.', \'/%\' )
+                                 OR '.$output[1].' LIKE CONCAT( \'%/\', '.$filtersubcategories.' ) )';
+                }
+
                 return str_replace('%%FILTER_SUBCATEGORIES:'.$output[1].'%%', $replace, $finalelements);
             }
         }
